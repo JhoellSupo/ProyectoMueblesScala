@@ -1,0 +1,33 @@
+:root {
+  --color-primary: #024042;
+  --color-primary-dark: #012b2d;
+  --color-primary-light: #056b6e;
+  --color-primary-tint: #f0f7f7;
+  --color-primary-border: rgba(2, 64, 66, 0.18);
+  --color-primary-glow: rgba(2, 64, 66, 0.16);
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+  --bg-main: #f8faf9;
+  --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input,
+button,
+select,
+textarea {
+  font-family: inherit;
+}
+
