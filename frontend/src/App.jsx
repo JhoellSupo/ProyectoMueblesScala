@@ -6,12 +6,12 @@ import './App.css';
 const isLoginUrl = () => window.location.pathname.toLowerCase() === '/login';
 
 function App() {
-  const [view, setView] = useState(() => (isLoginUrl() ? 'login' : 'home'));
+  const [view, setView] = useState(() => (isLoginUrl() ? 'login' : 'inicio'));
   const [user, setUser] = useState(null);
 
   useEffect(() => {
     const handlePopState = () => {
-      setView(isLoginUrl() ? 'login' : 'home');
+      setView(isLoginUrl() ? 'login' : 'inicio');
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -28,7 +28,7 @@ function App() {
 
   const handleLogin = (userData) => {
     setUser(userData);
-    navigateTo('home');
+    navigateTo('inicio');
   };
 
   const handleLogout = () => {
@@ -37,12 +37,17 @@ function App() {
 
   return (
     <div className="app">
-      {view === 'home' ? (
-        <Home user={user} onLogout={handleLogout} onNavigate={navigateTo} />
-      ) : (
+      {view === 'login' ? (
         <div className="login-wrapper">
-          <Login onLogin={handleLogin} onBack={() => navigateTo('home')} />
+          <Login onLogin={handleLogin} onBack={() => navigateTo('inicio')} />
         </div>
+      ) : (
+        <Home
+          currentView={view}
+          user={user}
+          onLogout={handleLogout}
+          onNavigate={navigateTo}
+        />
       )}
     </div>
   );
