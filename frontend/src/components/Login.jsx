@@ -48,25 +48,11 @@ export default function Login({ onLogin, onBack }) {
 
       <div className="login-card">
         <div className="login-header">
-          <div className="brand-badge" aria-hidden="true">
-            {/* Elegant sofa / furniture icon */}
-            <svg
-              className="brand-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M4 11V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" />
-              <path d="M2 13a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" />
-              <line x1="6" y1="20" x2="6" y2="22" />
-              <line x1="18" y1="20" x2="18" y2="22" />
-            </svg>
-          </div>
-          <span className="brand-logo-text">Scala</span>
-          <span className="brand-tagline">Muebles &amp; Diseño</span>
+          <img
+            src="/LOGO.png"
+            alt="Logo Scala"
+            className="brand-logo-img"
+          />
 
           <h2 className="login-title">Iniciar Sesión</h2>
           <p className="login-subtitle">
@@ -95,7 +81,7 @@ export default function Login({ onLogin, onBack }) {
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>
           <div className="form-group">
-            <label htmlFor="username">Usuario o Correo</label>
+            <label htmlFor="username">Usuario</label>
             <div className="input-wrapper">
               <span className="input-icon" aria-hidden="true">
                 <svg
@@ -230,6 +216,7 @@ export default function Login({ onLogin, onBack }) {
         </div>
       </div>
     </div>
+
   );
 }
 

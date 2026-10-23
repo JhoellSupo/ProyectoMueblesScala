@@ -88,45 +88,18 @@
   margin-bottom: 24px;
 }
 
-.brand-badge {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #024042 0%, #056b6e 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 18px -4px rgba(2, 64, 66, 0.4);
-  margin-bottom: 12px;
-  color: #ffffff;
+.brand-logo-img {
+  max-width: 160px;
+  max-height: 90px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 16px;
   transition: transform 0.25s ease;
 }
 
-.login-card:hover .brand-badge {
-  transform: scale(1.04);
-}
-
-.brand-icon {
-  width: 26px;
-  height: 26px;
-}
-
-.brand-logo-text {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  color: #024042;
-  line-height: 1.1;
-}
-
-.brand-tagline {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  color: #617b7c;
-  text-transform: uppercase;
-  margin-top: 4px;
-  margin-bottom: 18px;
+.login-card:hover .brand-logo-img {
+  transform: scale(1.03);
 }
 
 .login-title {

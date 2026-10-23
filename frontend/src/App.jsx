@@ -38,7 +38,7 @@ function App() {
   return (
     <div className="app">
       {view === 'home' ? (
-        <Home user={user} onLogout={handleLogout} />
+        <Home user={user} onLogout={handleLogout} onNavigate={navigateTo} />
       ) : (
         <div className="login-wrapper">
           <Login onLogin={handleLogin} onBack={() => navigateTo('home')} />
