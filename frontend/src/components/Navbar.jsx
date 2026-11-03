@@ -70,6 +70,7 @@ export default function Navbar({
                 className="nav-link nav-link-location"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
               >
                 <svg
                   className="location-icon"
@@ -92,6 +93,20 @@ export default function Navbar({
           {user && (
             <div className="header-user-actions">
               <div className="user-profile">
+                <button
+                  type="button"
+                  className="btn-nav-admin"
+                  onClick={(e) => handleLinkClick(e, 'admin')}
+                  title="Ir al panel de administración"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 15, height: 15 }}>
+                    <rect x="2" y="3" width="20" height="14" rx="2" />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                  </svg>
+                  <span>Panel Admin</span>
+                </button>
+
                 <span className="user-greeting">
                   <svg
                     className="user-avatar-icon"
@@ -105,15 +120,16 @@ export default function Navbar({
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
-                  <span>{user.username}</span>
+                  <span>{user.nombre || user.username}</span>
                 </span>
+
                 {onLogout && (
                   <button
                     type="button"
                     onClick={onLogout}
                     className="btn-nav-logout"
                   >
-                    Cerrar sesión
+                    Salir
                   </button>
                 )}
               </div>

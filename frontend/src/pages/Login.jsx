@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { authService } from '../services/authService';
 import './Login.css';
 
 export default function Login({ onLogin, onBack }) {
@@ -8,7 +9,7 @@ export default function Login({ onLogin, onBack }) {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username.trim() || !password) {
       setError('Por favor completa todos los campos.');
@@ -17,9 +18,14 @@ export default function Login({ onLogin, onBack }) {
     setError('');
     setIsSubmitting(true);
 
-    // Call onLogin prop
-    onLogin({ username: username.trim() });
-    setIsSubmitting(false);
+    try {
+      const user = await authService.login({ username: username.trim(), password });
+      onLogin(user);
+    } catch (err) {
+      setError(err.message || 'Error de conexión con el servidor');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
