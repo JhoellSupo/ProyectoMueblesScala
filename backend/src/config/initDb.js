@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import mysql from 'mysql2/promise';
+import bcrypt from 'bcryptjs';
 import db from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -34,24 +35,40 @@ export async function initDatabase() {
       "SELECT * FROM administradores WHERE usuario = 'admin'"
     );
     if (adminCheck.length === 0) {
+      const defaultAdminHash = await bcrypt.hash('admin123', 10);
       await db.query(
         `INSERT INTO administradores (nombre, usuario, password_hash, rol, estado) 
          VALUES (?, ?, ?, 'ADMINISTRADOR', 'ACTIVO')`,
-        ['Administrador Scala', 'admin', 'admin123']
+        ['Administrador Scala', 'admin', defaultAdminHash]
       );
-      console.log('✓ Administrador inicial creado (usuario: admin / pass: admin123)');
+      console.log('✓ Administrador inicial creado con bcrypt (usuario: admin / pass: admin123)');
     }
 
     const [superCheck] = await db.query(
       "SELECT * FROM administradores WHERE usuario = 'superadmin'"
     );
     if (superCheck.length === 0) {
+      const defaultSuperHash = await bcrypt.hash('superadmin123', 10);
       await db.query(
         `INSERT INTO administradores (nombre, usuario, password_hash, rol, estado) 
          VALUES (?, ?, ?, 'SUPERADMINISTRADOR', 'ACTIVO')`,
-        ['Superadministrador Scala', 'superadmin', 'superadmin123']
+        ['Superadministrador Scala', 'superadmin', defaultSuperHash]
       );
-      console.log('✓ Superadministrador creado (usuario: superadmin / pass: superadmin123)');
+      console.log('✓ Superadministrador creado con bcrypt (usuario: superadmin / pass: superadmin123)');
+    }
+
+    // 1.1 Migrar cualquier contraseña existente en texto plano a bcrypt hash
+    const [existingAdmins] = await db.query('SELECT id_administradores, usuario, password_hash FROM administradores');
+    for (const a of existingAdmins) {
+      const currentHash = a.password_hash || '';
+      if (!currentHash.startsWith('$2a$') && !currentHash.startsWith('$2b$') && !currentHash.startsWith('$2y$')) {
+        const migratedHash = await bcrypt.hash(currentHash, 10);
+        await db.query(
+          'UPDATE administradores SET password_hash = ? WHERE id_administradores = ?',
+          [migratedHash, a.id_administradores]
+        );
+        console.log(`✓ Contraseña de administrador '${a.usuario}' migrada exitosamente a bcrypt hash`);
+      }
     }
 
     // 2. Asegurar Categorías iniciales

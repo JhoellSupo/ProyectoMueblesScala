@@ -1,3 +1,5 @@
+import { formatImageUrl } from '../../services/apiClient';
+
 export default function SliderTable({
   banners,
   searchQuery,
@@ -19,7 +21,7 @@ export default function SliderTable({
           </svg>
           <input
             type="text"
-            placeholder="Buscar imagen del slider por título o URL..."
+            placeholder="Buscar foto del slider por título..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
           />
@@ -34,14 +36,14 @@ export default function SliderTable({
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          <span>Nueva Imagen Slider</span>
+          <span>Nueva Foto Slider</span>
         </button>
       </div>
 
       {loading ? (
         <div className="admin-loading-state">
           <div className="spinner" />
-          <p>Cargando imágenes del slider...</p>
+          <p>Cargando fotos del slider...</p>
         </div>
       ) : banners.length === 0 ? (
         <div className="admin-empty-state">
@@ -50,14 +52,14 @@ export default function SliderTable({
             <circle cx="8.5" cy="8.5" r="1.5" />
             <polyline points="21 15 16 10 5 21" />
           </svg>
-          <h3>No hay imágenes en el slider</h3>
-          <p>Añade imágenes de alta calidad para lucirlas en el carrusel de la página principal.</p>
+          <h3>No hay fotos en el slider</h3>
+          <p>Sube imágenes de tus muebles para destacarlas en el carrusel de la página principal.</p>
           <button
             type="button"
             className="btn-admin-primary"
             onClick={onNewBanner}
           >
-            + Agregar primera imagen
+            + Subir primera foto
           </button>
         </div>
       ) : (
@@ -66,7 +68,7 @@ export default function SliderTable({
             <thead>
               <tr>
                 <th style={{ width: '130px' }}>Vista Previa</th>
-                <th>Título / Descripción</th>
+                <th>Título / Ubicación</th>
                 <th style={{ width: '100px' }}>Orden</th>
                 <th>Estado</th>
                 <th style={{ textAlign: 'center', width: '130px' }}>Acciones</th>
@@ -78,7 +80,7 @@ export default function SliderTable({
                   <td>
                     <div className="product-table-thumb" style={{ width: '110px', height: '60px', borderRadius: '8px' }}>
                       <img
-                        src={b.imagen_url}
+                        src={formatImageUrl(b.imagen_url || b.url_imagen)}
                         alt={b.titulo || 'Banner'}
                         style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                         onError={(e) => {
@@ -90,10 +92,10 @@ export default function SliderTable({
                   <td>
                     <div className="product-info-cell">
                       <span className="product-cell-title">
-                        {b.titulo || 'Imagen sin título'}
+                        {b.titulo || 'Foto sin título'}
                       </span>
                       <span className="product-cell-desc" style={{ maxWidth: '380px' }}>
-                        {b.imagen_url}
+                        Foto activa en carrusel principal
                       </span>
                     </div>
                   </td>
@@ -105,7 +107,7 @@ export default function SliderTable({
                       type="button"
                       className={`status-pill ${b.activo === 1 ? 'active' : 'inactive'}`}
                       onClick={() => onToggleStatus(b)}
-                      title="Haz clic para cambiar estado en el carrusel"
+                      title="Haz clic para cambiar visibilidad en el carrusel"
                     >
                       <span className="status-dot" />
                       <span>{b.activo === 1 ? 'Visible' : 'Oculto'}</span>
@@ -117,7 +119,7 @@ export default function SliderTable({
                         type="button"
                         className="btn-action edit"
                         onClick={() => onEditBanner(b)}
-                        title="Editar imagen"
+                        title="Cambiar foto o título"
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -129,12 +131,12 @@ export default function SliderTable({
                         className="btn-action delete"
                         onClick={() =>
                           onDeleteBanner({
-                            type: 'imagen del slider',
+                            type: 'foto del slider',
                             id: b.id_banner,
-                            name: b.titulo || 'Imagen de slider'
+                            name: b.titulo || 'Foto de slider'
                           })
                         }
-                        title="Eliminar imagen"
+                        title="Eliminar foto"
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <polyline points="3 6 5 6 21 6" />
@@ -152,4 +154,3 @@ export default function SliderTable({
     </div>
   );
 }
-

@@ -84,6 +84,9 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
   const [sliderForm, setSliderForm] = useState({
     titulo: '',
     imagen_url: '',
+    imageFile: null,
+    imagePreview: '',
+    fileName: '',
     orden: 0
   });
 
@@ -204,8 +207,7 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
     const query = normalizeText(searchQuery);
     return banners.filter((b) =>
       !query ||
-      normalizeText(b.titulo).includes(query) ||
-      normalizeText(b.imagen_url).includes(query)
+      normalizeText(b.titulo).includes(query)
     );
   }, [banners, searchQuery]);
 
@@ -369,7 +371,10 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
       setEditingBanner(banner);
       setSliderForm({
         titulo: banner.titulo || '',
-        imagen_url: banner.imagen_url || '',
+        imagen_url: banner.imagen_url || banner.url_imagen || '',
+        imageFile: null,
+        imagePreview: '',
+        fileName: '',
         orden: banner.orden || 0
       });
     } else {
@@ -377,6 +382,9 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
       setSliderForm({
         titulo: '',
         imagen_url: '',
+        imageFile: null,
+        imagePreview: '',
+        fileName: '',
         orden: (banners.length + 1)
       });
     }
@@ -385,21 +393,41 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
 
   const handleSaveBanner = async (e) => {
     e.preventDefault();
-    if (!sliderForm.imagen_url.trim()) {
-      showToast('La URL de la imagen es obligatoria', 'error');
+    if (!editingBanner && !sliderForm.imageFile && !sliderForm.imagen_url) {
+      showToast('Debes seleccionar una foto para el slider', 'error');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const isEdit = !!editingBanner;
-      if (isEdit) {
-        await sliderService.actualizar(editingBanner.id_banner, sliderForm);
-      } else {
-        await sliderService.crear(sliderForm);
+      let finalImageUrl = sliderForm.imagen_url || '';
+
+      // Si el usuario seleccionó un archivo nuevo, subirlo al servidor primero
+      if (sliderForm.imageFile) {
+        finalImageUrl = await uploadImage(sliderForm.imageFile);
       }
 
-      showToast(isEdit ? 'Imagen del slider actualizada' : 'Nueva imagen agregada al slider');
+      if (!finalImageUrl) {
+        showToast('No se pudo procesar la foto seleccionada', 'error');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const isEdit = !!editingBanner;
+      const payload = {
+        titulo: sliderForm.titulo?.trim() || 'Foto Slider Scala',
+        imagen_url: finalImageUrl,
+        url_imagen: finalImageUrl,
+        orden: Number(sliderForm.orden) || 1
+      };
+
+      if (isEdit) {
+        await sliderService.actualizar(editingBanner.id_banner, payload);
+      } else {
+        await sliderService.crear(payload);
+      }
+
+      showToast(isEdit ? 'Foto del slider actualizada' : 'Nueva foto guardada en el slider');
       setIsSliderModalOpen(false);
       fetchData();
     } catch (err) {

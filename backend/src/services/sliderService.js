@@ -16,17 +16,28 @@ export const sliderService = {
   },
 
   async crearBanner(data) {
-    if (!data.imagen_url || !data.imagen_url.trim()) {
-      const error = new Error('La URL de la imagen es obligatoria');
+    const imagen = (data.imagen_url || data.url_imagen || '').trim();
+    if (!imagen) {
+      const error = new Error('La imagen para el slider es obligatoria');
       error.statusCode = 400;
       throw error;
     }
-    return await sliderModel.create(data);
+    return await sliderModel.create({
+      ...data,
+      url_imagen: imagen,
+      imagen_url: imagen
+    });
   },
 
   async actualizarBanner(id, data) {
     await this.obtenerPorId(id);
-    return await sliderModel.update(id, data);
+    const imagen = (data.imagen_url || data.url_imagen || '').trim();
+    const payload = { ...data };
+    if (imagen) {
+      payload.url_imagen = imagen;
+      payload.imagen_url = imagen;
+    }
+    return await sliderModel.update(id, payload);
   },
 
   async cambiarEstado(id, activo) {

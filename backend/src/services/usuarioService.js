@@ -1,7 +1,9 @@
 import { usuarioModel } from '../models/usuarioModel.js';
+import bcrypt from 'bcryptjs';
+import db from '../config/db.js';
 
 export const usuarioService = {
-  // Autenticar administrador por nombre de usuario
+  // Autenticar administrador por nombre de usuario con contraseña segura hasheada
   async autenticar({ identifier, password }) {
     const usuarioIngresado = (identifier || '').trim();
 
@@ -26,10 +28,23 @@ export const usuarioService = {
         throw error;
       }
 
-      const passwordCoincide =
-        password === admin.password_hash ||
-        (usuarioIngresado.toLowerCase() === 'admin' && (password === 'admin123' || password === 'admin')) ||
-        (usuarioIngresado.toLowerCase() === 'superadmin' && (password === 'superadmin123' || password === 'superadmin'));
+      // Verificación segura con bcrypt (con migración en caliente si aún estaba en texto plano)
+      let passwordCoincide = false;
+      const storedHash = admin.password_hash || '';
+
+      if (storedHash.startsWith('$2a$') || storedHash.startsWith('$2b$') || storedHash.startsWith('$2y$')) {
+        passwordCoincide = await bcrypt.compare(password, storedHash);
+      } else {
+        passwordCoincide = (password === storedHash);
+        // Si coincidió en texto plano, migrar inmediatamente a hash bcrypt en la BD
+        if (passwordCoincide) {
+          const nuevoHash = await bcrypt.hash(password, 10);
+          await db.query(
+            'UPDATE administradores SET password_hash = ? WHERE id_administradores = ?',
+            [nuevoHash, admin.id_administradores || admin.id_admin]
+          );
+        }
+      }
 
       if (!passwordCoincide) {
         const error = new Error('Contraseña incorrecta. Inténtalo de nuevo.');
@@ -115,11 +130,12 @@ export const usuarioService = {
     }
 
     const rolVal = (rol || '').toUpperCase().includes('SUPER') ? 'SUPERADMINISTRADOR' : 'ADMINISTRADOR';
+    const hashedPassword = await bcrypt.hash(password.trim(), 10);
 
     return await usuarioModel.create({
       nombre: nombre.trim(),
       usuario: username,
-      password_hash: password.trim(),
+      password_hash: hashedPassword,
       rol: rolVal,
       estado: 'ACTIVO'
     });

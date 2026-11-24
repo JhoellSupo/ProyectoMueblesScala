@@ -1,44 +1,31 @@
 import { useState, useEffect, useRef } from 'react';
 import { sliderService } from '../services/sliderService';
+import { formatImageUrl } from '../services/apiClient';
 import './HeroSlider.css';
 
-const DEFAULT_SLIDES = [
-  {
-    id_banner: 1,
-    imagen_url: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1600&q=80',
-    titulo: 'Colección de Sala Scala'
-  },
-  {
-    id_banner: 2,
-    imagen_url: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=1600&q=80',
-    titulo: 'Juegos de Comedor Modernos'
-  },
-  {
-    id_banner: 3,
-    imagen_url: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1600&q=80',
-    titulo: 'Centros de Entretenimiento y Módulos TV'
-  }
-];
-
 export default function HeroSlider() {
-  const [slides, setSlides] = useState(DEFAULT_SLIDES);
+  const [slides, setSlides] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const slideInterval = useRef(null);
 
-  // Cargar banners dinámicos desde la base de datos
+  // Cargar banners dinámicos exclusivamente desde la base de datos MySQL
   useEffect(() => {
+    let isMounted = true;
     const fetchBanners = async () => {
       try {
         const data = await sliderService.listar({ soloActivos: 1 });
-        if (data && data.length > 0) {
+        if (isMounted && Array.isArray(data) && data.length > 0) {
           setSlides(data);
         }
       } catch (err) {
-        console.error('Error al cargar banners del slider:', err);
+        console.error('Error al cargar fotos del slider desde la base de datos:', err);
       }
     };
     fetchBanners();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const total = slides.length;
@@ -63,6 +50,16 @@ export default function HeroSlider() {
     };
   }, [isPaused, currentSlide, total]);
 
+  if (total === 0) {
+    return (
+      <section className="hero-slider-container" aria-label="Galería de fotos de muebles Scala">
+        <div className="slider-track">
+          <div className="slide-item active" style={{ backgroundColor: '#022f30' }} />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       className="hero-slider-container"
@@ -73,11 +70,12 @@ export default function HeroSlider() {
       <div className="slider-track">
         {slides.map((slide, index) => {
           const isActive = index === currentSlide;
+          const bgUrl = formatImageUrl(slide.imagen_url || slide.url_imagen);
           return (
             <div
               key={slide.id_banner || index}
               className={`slide-item ${isActive ? 'active' : ''}`}
-              style={{ backgroundImage: `url(${slide.imagen_url})` }}
+              style={{ backgroundImage: `url("${bgUrl}")` }}
               role="img"
               aria-label={slide.titulo || 'Foto Muebles Scala'}
             />
