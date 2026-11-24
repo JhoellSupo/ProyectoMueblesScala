@@ -1,5 +1,14 @@
 import { productoService } from '../services/productoService.js';
 
+const getAdminUser = (req) => {
+  return (
+    req.body?.usuario_admin ||
+    req.headers['x-admin-user'] ||
+    req.query?.usuario_admin ||
+    'admin'
+  );
+};
+
 export const productoController = {
   // GET /api/productos
   async listar(req, res, next) {
@@ -37,7 +46,11 @@ export const productoController = {
   // POST /api/productos
   async crear(req, res, next) {
     try {
-      const nuevoProducto = await productoService.crearProducto(req.body);
+      const adminUser = getAdminUser(req);
+      const nuevoProducto = await productoService.crearProducto({
+        ...req.body,
+        usuario_admin: adminUser
+      });
       res.status(201).json({
         success: true,
         message: 'Producto creado exitosamente',
@@ -52,7 +65,11 @@ export const productoController = {
   async actualizar(req, res, next) {
     try {
       const { id } = req.params;
-      const productoActualizado = await productoService.actualizarProducto(id, req.body);
+      const adminUser = getAdminUser(req);
+      const productoActualizado = await productoService.actualizarProducto(id, {
+        ...req.body,
+        usuario_admin: adminUser
+      });
       res.json({
         success: true,
         message: 'Producto actualizado con éxito',
@@ -68,7 +85,10 @@ export const productoController = {
     try {
       const { id } = req.params;
       const { activo } = req.body;
-      const productoActualizado = await productoService.cambiarEstado(id, activo);
+      const adminUser = getAdminUser(req);
+      const productoActualizado = await productoService.cambiarEstado(id, activo, {
+        usuario_admin: adminUser
+      });
       res.json({
         success: true,
         message: 'Estado del producto actualizado',
@@ -83,7 +103,10 @@ export const productoController = {
   async eliminar(req, res, next) {
     try {
       const { id } = req.params;
-      await productoService.eliminarProducto(id);
+      const adminUser = getAdminUser(req);
+      await productoService.eliminarProducto(id, {
+        usuario_admin: adminUser
+      });
       res.json({
         success: true,
         message: 'Producto eliminado correctamente'

@@ -18,7 +18,7 @@ export const categoriaService = {
   },
 
   // Crear una nueva categoría con validaciones
-  async crearCategoria({ nombre, descripcion }) {
+  async crearCategoria({ nombre, descripcion, imagen_url }) {
     if (!nombre || !nombre.trim()) {
       const error = new Error('El nombre de la categoría es obligatorio.');
       error.statusCode = 400;
@@ -32,11 +32,11 @@ export const categoriaService = {
       throw error;
     }
 
-    return await categoriaModel.create({ nombre, descripcion });
+    return await categoriaModel.create({ nombre, descripcion, imagen_url });
   },
 
   // Actualizar una categoría existente
-  async actualizarCategoria(id, { nombre, descripcion }) {
+  async actualizarCategoria(id, { nombre, descripcion, imagen_url }) {
     if (!nombre || !nombre.trim()) {
       const error = new Error('El nombre de la categoría es obligatorio.');
       error.statusCode = 400;
@@ -57,7 +57,7 @@ export const categoriaService = {
       throw error;
     }
 
-    return await categoriaModel.update(id, { nombre, descripcion });
+    return await categoriaModel.update(id, { nombre, descripcion, imagen_url });
   },
 
   // Eliminar categoría con validación de muebles dependientes

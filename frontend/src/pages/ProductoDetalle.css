@@ -1,0 +1,395 @@
+/* ProductoDetalle.css - Estilos para la página de detalle individual del mueble */
+
+.product-detail-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f7faf9;
+}
+
+.product-detail-main {
+  flex: 1;
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+/* Breadcrumb */
+.product-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: #64748b;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.product-breadcrumb button {
+  background: none;
+  border: none;
+  color: #024042;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+  transition: color 0.2s ease;
+}
+
+.product-breadcrumb button:hover {
+  color: #dfb166;
+  text-decoration: underline;
+}
+
+.product-breadcrumb .breadcrumb-separator {
+  color: #94a3b8;
+}
+
+.product-breadcrumb .current-page {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* Layout de 2 columnas para el producto */
+.product-showcase-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  margin-bottom: 60px;
+}
+
+/* Galería de Imágenes (Columna Izquierda) */
+.product-gallery-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.product-main-image-box {
+  position: relative;
+  width: 100%;
+  height: 440px;
+  border-radius: 16px;
+  overflow: hidden;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.product-main-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.product-main-image-box:hover .product-main-img {
+  transform: scale(1.03);
+}
+
+.product-cat-pill {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: rgba(2, 64, 66, 0.9);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+}
+
+.product-thumbnails-strip {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.product-thumb-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  padding: 0;
+  background: #e2e8f0;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.product-thumb-btn.active {
+  border-color: #024042;
+  box-shadow: 0 0 0 2px rgba(2, 64, 66, 0.2);
+}
+
+.product-thumb-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Información del Producto (Columna Derecha) */
+.product-info-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.product-brand-tag {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #dfb166;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+
+.product-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #024042;
+  line-height: 1.2;
+  margin: 0 0 16px 0;
+  letter-spacing: -0.01em;
+}
+
+.product-price-section {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 16px 0;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 24px;
+}
+
+.product-currency {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #024042;
+}
+
+.product-amount {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #024042;
+  letter-spacing: -0.02em;
+}
+
+.product-payment-note {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-left: 8px;
+}
+
+.product-description-box {
+  margin-bottom: 28px;
+}
+
+.product-description-box h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.product-description-box p {
+  font-size: 0.98rem;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Especificaciones y Dimensiones */
+.product-specs-box {
+  background: #f8faf9;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 28px;
+}
+
+.specs-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #024042;
+  margin: 0 0 10px 0;
+}
+
+.specs-grid {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.spec-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.spec-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.spec-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.custom-size-note {
+  font-size: 0.82rem;
+  color: #475569;
+  margin: 10px 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Franja de Características / Ventajas */
+.product-perks-list {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+
+.perk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #024042;
+  background: #f0f7f7;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+/* Botones de Acción */
+.product-actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.btn-whatsapp-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #25d366;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 16px 28px;
+  border-radius: 12px;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.28);
+}
+
+.btn-whatsapp-primary:hover {
+  background: #1eb956;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.38);
+}
+
+.btn-whatsapp-primary svg {
+  width: 22px;
+  height: 22px;
+}
+
+.btn-back-category {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-back-category:hover {
+  background: #f1f5f9;
+  color: #024042;
+  border-color: #024042;
+}
+
+/* Sección de Muebles Relacionados */
+.related-products-section {
+  margin-top: 40px;
+}
+
+.related-header {
+  margin-bottom: 24px;
+}
+
+.related-tag {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #dfb166;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: inline-block;
+}
+
+.related-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #024042;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 960px) {
+  .product-showcase-layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 24px;
+  }
+  .product-main-image-box {
+    height: 340px;
+  }
+  .product-title {
+    font-size: 1.8rem;
+  }
+  .product-amount {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .product-detail-main {
+    padding: 20px 16px 48px;
+  }
+  .product-main-image-box {
+    height: 280px;
+  }
+  .product-showcase-layout {
+    padding: 18px;
+  }
+}
+

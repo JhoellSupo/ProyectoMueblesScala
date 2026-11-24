@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './Navbar.css';
 
 export default function Navbar({
@@ -8,21 +8,58 @@ export default function Navbar({
   activeItem = 'inicio'
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [time, setTime] = useState(() =>
+    new Date().toLocaleTimeString('es-PE', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    })
+  );
 
-  const handleLinkClick = (e, itemKey) => {
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(
+        new Date().toLocaleTimeString('es-PE', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        })
+      );
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleLinkClick = (e, item) => {
     if (onNavigate) {
       e.preventDefault();
-      onNavigate(itemKey);
+      if (typeof item === 'object' && item?.slug) {
+        onNavigate('categoria', item.slug);
+      } else if (typeof item === 'object' && item?.key) {
+        onNavigate(item.key);
+      } else {
+        onNavigate(item);
+      }
       setMobileMenuOpen(false);
     }
   };
 
   const navItems = [
     { key: 'inicio', label: 'Inicio', href: '/' },
-    { key: 'sala', label: 'Sala', href: '#sala' },
-    { key: 'comedor', label: 'Comedor', href: '#comedor' },
-    { key: 'modulos-tv', label: 'Módulos TV', href: '#modulostv' },
+    { key: 'sala', label: 'Sala', href: '/categorias/sala', slug: 'sala' },
+    { key: 'comedor', label: 'Comedor', href: '/categorias/comedor', slug: 'comedor' },
+    { key: 'modulos-tv', label: 'Módulos TV', href: '/categorias/modulos-tv', slug: 'modulos-tv' },
   ];
+
+  const isItemActive = (item) => {
+    if (!activeItem) return false;
+    if (activeItem === item.key) return true;
+    if (item.slug && (activeItem === item.slug || activeItem === `categoria-${item.slug}`)) {
+      return true;
+    }
+    return false;
+  };
 
   return (
     <header className="header-container">
@@ -31,7 +68,7 @@ export default function Navbar({
         <a
           href="/"
           className="header-logo-link"
-          onClick={(e) => handleLinkClick(e, 'inicio', '/')}
+          onClick={(e) => handleLinkClick(e, { key: 'inicio' })}
           aria-label="Ir a Inicio - Muebles Scala"
         >
           <img src="/LOGO.png" alt="Muebles Scala" className="header-logo" />
@@ -57,8 +94,8 @@ export default function Navbar({
               <li key={item.key} className="nav-item">
                 <a
                   href={item.href}
-                  className={`nav-link ${activeItem === item.key ? 'active' : ''}`}
-                  onClick={(e) => handleLinkClick(e, item.key, item.href)}
+                  className={`nav-link ${isItemActive(item) ? 'active' : ''}`}
+                  onClick={(e) => handleLinkClick(e, item)}
                 >
                   {item.label}
                 </a>
@@ -121,6 +158,9 @@ export default function Navbar({
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                   <span>{user.nombre || user.username}</span>
+                  <span className="nav-live-clock" title="Hora en vivo">
+                    <span>{time}</span>
+                  </span>
                 </span>
 
                 {onLogout && (

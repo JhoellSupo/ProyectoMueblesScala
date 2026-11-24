@@ -60,6 +60,7 @@ export default function CategoryTable({
             <thead>
               <tr>
                 <th style={{ width: '60px' }}>ID</th>
+                <th style={{ width: '80px' }}>Imagen</th>
                 <th>Nombre de la Categoría</th>
                 <th>Descripción</th>
                 <th>Productos Asignados</th>
@@ -71,6 +72,20 @@ export default function CategoryTable({
                 <tr key={c.id_categoria}>
                   <td>
                     <span className="mono-id">#{c.id_categoria}</span>
+                  </td>
+                  <td>
+                    {c.imagen_url ? (
+                      <img
+                        src={c.imagen_url}
+                        alt={c.nombre}
+                        className="product-table-thumb"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <span className="table-thumb-empty">Sin foto</span>
+                    )}
                   </td>
                   <td>
                     <span className="category-cell-name">{c.nombre}</span>

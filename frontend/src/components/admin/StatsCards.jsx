@@ -37,22 +37,6 @@ export default function StatsCards({ stats }) {
           <span className="kpi-value">{stats.totalCat}</span>
         </div>
       </div>
-
-      <div className="kpi-card">
-        <div className="kpi-icon-box blue">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="12" y1="1" x2="12" y2="23" />
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-          </svg>
-        </div>
-        <div className="kpi-info">
-          <span className="kpi-label">Precio Promedio</span>
-          <span className="kpi-value">
-            S/. {stats.precioPromedio.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
-        </div>
-      </div>
     </section>
   );
 }
-

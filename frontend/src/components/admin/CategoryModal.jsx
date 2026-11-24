@@ -47,6 +47,27 @@ export default function CategoryModal({
             />
           </div>
 
+          <div className="form-field">
+            <label htmlFor="c-img">URL de Imagen de Referencia (opcional)</label>
+            <input
+              id="c-img"
+              type="url"
+              placeholder="https://images.unsplash.com/... o enlace de tu imagen"
+              value={formData.imagen_url || ''}
+              onChange={(e) => onChange({ ...formData, imagen_url: e.target.value })}
+            />
+            {formData.imagen_url && (
+              <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', height: 110, background: '#f1f5f9' }}>
+                <img
+                  src={formData.imagen_url}
+                  alt="Vista previa categoría"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              </div>
+            )}
+          </div>
+
           <div className="modal-actions">
             <button
               type="button"

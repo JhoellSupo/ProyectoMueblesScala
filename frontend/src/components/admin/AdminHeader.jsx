@@ -1,6 +1,33 @@
+import { useState, useEffect } from 'react';
+
 export default function AdminHeader({ user, onNavigate, onLogout }) {
   const userName = user?.nombre || user?.username || 'Administrador';
   const initial = userName[0].toUpperCase();
+  const isSuperAdmin = user?.rol === 'superadmin' || user?.nombre === 'superadmin';
+
+  // Reloj en vivo con segundos
+  const [time, setTime] = useState(() =>
+    new Date().toLocaleTimeString('es-PE', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    })
+  );
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(
+        new Date().toLocaleTimeString('es-PE', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        })
+      );
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <header className="admin-header">
@@ -8,7 +35,9 @@ export default function AdminHeader({ user, onNavigate, onLogout }) {
         <img src="/LOGO.png" alt="Muebles Scala" className="admin-brand-logo" />
         <div className="admin-title-group">
           <h1 className="admin-main-title">Panel de Administración</h1>
-          <span className="admin-badge-role">Gestión de Catálogo e Inventario</span>
+          <span className={`admin-badge-role ${isSuperAdmin ? 'superadmin-badge' : ''}`}>
+            {isSuperAdmin ? '👑 Superadministrador • Control Total' : 'Gestión de Catálogo e Inventario'}
+          </span>
         </div>
       </div>
 
@@ -28,9 +57,17 @@ export default function AdminHeader({ user, onNavigate, onLogout }) {
           </button>
         )}
 
-        <div className="admin-user-pill">
-          <span className="admin-user-avatar">{initial}</span>
-          <span className="admin-user-name">{userName}</span>
+        <div className={`admin-user-pill ${isSuperAdmin ? 'super-user-pill' : ''}`}>
+          <span className={`admin-user-avatar ${isSuperAdmin ? 'super-avatar' : ''}`}>
+            {initial}
+          </span>
+          <div className="admin-user-info-box">
+            <span className="admin-user-name">{userName}</span>
+            {isSuperAdmin && <span className="super-label">SUPERADMIN</span>}
+          </div>
+          <div className="admin-live-clock" title="Hora actual en vivo">
+            <span className="live-clock-time">{time}</span>
+          </div>
         </div>
 
         {onLogout && (
@@ -52,4 +89,3 @@ export default function AdminHeader({ user, onNavigate, onLogout }) {
     </header>
   );
 }
-

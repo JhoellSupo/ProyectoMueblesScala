@@ -1,21 +1,51 @@
 import { useState, useEffect, useMemo } from 'react';
 import { productoService } from '../services/productoService';
 import { categoriaService } from '../services/categoriaService';
+import { sliderService } from '../services/sliderService';
+import { adminService } from '../services/adminService';
+import { historialService } from '../services/historialService';
+import { uploadImage } from '../services/apiClient';
 import AdminHeader from '../components/admin/AdminHeader';
 import StatsCards from '../components/admin/StatsCards';
 import ProductTable from '../components/admin/ProductTable';
 import CategoryTable from '../components/admin/CategoryTable';
+import SliderTable from '../components/admin/SliderTable';
+import HistoryTable from '../components/admin/HistoryTable';
+import AdminUsersTable from '../components/admin/AdminUsersTable';
 import ProductModal from '../components/admin/ProductModal';
 import CategoryModal from '../components/admin/CategoryModal';
+import SliderModal from '../components/admin/SliderModal';
+import AdminUserModal from '../components/admin/AdminUserModal';
 import DeleteConfirmModal from '../components/admin/DeleteConfirmModal';
 import './AdminPanel.css';
 
+// Función para normalizar texto eliminando tildes, diacríticos y pasando a minúsculas
+const normalizeText = (text = '') =>
+  (text || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
 export default function AdminPanel({ user, onLogout, onNavigate }) {
-  const [activeTab, setActiveTab] = useState('productos'); // 'productos' | 'categorias'
+  const isSuperAdmin = user?.rol === 'superadmin' || user?.nombre === 'superadmin';
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined' && window.location.search) {
+      if (window.location.search.includes('tab=historial')) return 'historial';
+      if (window.location.search.includes('tab=admins')) return 'admins';
+      if (window.location.search.includes('tab=categorias')) return 'categorias';
+      if (window.location.search.includes('tab=slider')) return 'slider';
+    }
+    return 'productos';
+  }); // 'productos' | 'categorias' | 'slider' | 'historial' | 'admins'
 
   // Estados de datos
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [historial, setHistorial] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null); // { type: 'success' | 'error', text: '' }
 
@@ -30,15 +60,41 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
     nombre: '',
     descripcion: '',
     precio: '',
+    precio_oferta: '',
+    largo_cm: '',
+    ancho_cm: '',
+    alto_cm: '',
     id_categoria: '',
-    imagen_url: ''
+    imagen_url: '',
+    imageFile: null,
+    imagePreview: '',
+    fileName: ''
   });
 
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [categoryForm, setCategoryForm] = useState({
     nombre: '',
-    descripcion: ''
+    descripcion: '',
+    imagen_url: ''
+  });
+
+  const [isSliderModalOpen, setIsSliderModalOpen] = useState(false);
+  const [editingBanner, setEditingBanner] = useState(null);
+  const [sliderForm, setSliderForm] = useState({
+    titulo: '',
+    imagen_url: '',
+    orden: 0
+  });
+
+  // Modal para nuevo administrador (solo superadmin)
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [adminForm, setAdminForm] = useState({
+    nombre: '',
+    usuario: '',
+    correo: '',
+    password: '',
+    rol: 'admin'
   });
 
   // Modal de confirmación para eliminar
@@ -51,16 +107,50 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Cargar datos desde servicios
+  // Cargar datos del historial
+  const fetchHistorial = async () => {
+    try {
+      const data = await historialService.listar();
+      setHistorial(data || []);
+    } catch (err) {
+      console.warn('Error al cargar historial:', err.message);
+    }
+  };
+
+  // Cargar lista de administradores
+  const fetchAdmins = async () => {
+    try {
+      const data = await adminService.listar();
+      setAdmins(data || []);
+    } catch (err) {
+      console.warn('Error al cargar administradores:', err.message);
+    }
+  };
+
+  // Cargar datos generales desde servicios
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [prodData, catData] = await Promise.all([
+      const promises = [
         productoService.listar(),
-        categoriaService.listar()
-      ]);
-      setProductos(prodData || []);
-      setCategorias(catData || []);
+        categoriaService.listar(),
+        sliderService.listar()
+      ];
+
+      if (isSuperAdmin) {
+        promises.push(historialService.listar());
+        promises.push(adminService.listar());
+      }
+
+      const results = await Promise.all(promises);
+      setProductos(results[0] || []);
+      setCategorias(results[1] || []);
+      setBanners(results[2] || []);
+
+      if (isSuperAdmin) {
+        setHistorial(results[3] || []);
+        setAdmins(results[4] || []);
+      }
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Error al conectar con el servidor', 'error');
@@ -71,28 +161,25 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [isSuperAdmin]);
 
   // Estadísticas KPI
   const stats = useMemo(() => {
     const totalProd = productos.length;
     const activos = productos.filter((p) => p.activo === 1).length;
     const totalCat = categorias.length;
-    const precioPromedio =
-      totalProd > 0
-        ? productos.reduce((acc, p) => acc + Number(p.precio || 0), 0) / totalProd
-        : 0;
-
-    return { totalProd, activos, totalCat, precioPromedio };
+    return { totalProd, activos, totalCat };
   }, [productos, categorias]);
 
-  // Filtrado de productos
+  // Filtrado de productos (insensible a tildes, mayúsculas y acentos)
   const filteredProducts = useMemo(() => {
+    const query = normalizeText(searchQuery);
     return productos.filter((p) => {
       const matchSearch =
-        p.nombre?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.descripcion?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.categoria?.toLowerCase().includes(searchQuery.toLowerCase());
+        !query ||
+        normalizeText(p.nombre).includes(query) ||
+        normalizeText(p.descripcion).includes(query) ||
+        normalizeText(p.categoria).includes(query);
 
       const matchCat =
         categoryFilter === 'todas' ||
@@ -102,13 +189,25 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
     });
   }, [productos, searchQuery, categoryFilter]);
 
-  // Filtrado de categorías
+  // Filtrado de categorías (insensible a tildes, mayúsculas y acentos)
   const filteredCategories = useMemo(() => {
+    const query = normalizeText(searchQuery);
     return categorias.filter((c) =>
-      c.nombre?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.descripcion?.toLowerCase().includes(searchQuery.toLowerCase())
+      !query ||
+      normalizeText(c.nombre).includes(query) ||
+      normalizeText(c.descripcion).includes(query)
     );
   }, [categorias, searchQuery]);
+
+  // Filtrado de banners del slider
+  const filteredBanners = useMemo(() => {
+    const query = normalizeText(searchQuery);
+    return banners.filter((b) =>
+      !query ||
+      normalizeText(b.titulo).includes(query) ||
+      normalizeText(b.imagen_url).includes(query)
+    );
+  }, [banners, searchQuery]);
 
   // --- MANEJADORES DE PRODUCTO ---
   const handleOpenProductModal = (product = null) => {
@@ -118,8 +217,15 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
         nombre: product.nombre || '',
         descripcion: product.descripcion || '',
         precio: product.precio || '',
-        id_categoria: product.id_categoria || (categorias[0]?.id_categoria || ''),
-        imagen_url: product.imagen_url || ''
+        precio_oferta: product.precio_oferta || '',
+        largo_cm: product.largo_cm ? parseFloat(product.largo_cm) : '',
+        ancho_cm: product.ancho_cm ? parseFloat(product.ancho_cm) : '',
+        alto_cm: product.alto_cm ? parseFloat(product.alto_cm) : '',
+        id_categoria: product.id_categoria || product.id_categorias || (categorias[0]?.id_categoria || ''),
+        imagen_url: product.imagen_url || product.url_imagen || '',
+        imageFile: null,
+        imagePreview: product.imagen_url || product.url_imagen || '',
+        fileName: ''
       });
     } else {
       setEditingProduct(null);
@@ -127,8 +233,15 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
         nombre: '',
         descripcion: '',
         precio: '',
+        precio_oferta: '',
+        largo_cm: '',
+        ancho_cm: '',
+        alto_cm: '',
         id_categoria: categorias[0]?.id_categoria || '',
-        imagen_url: ''
+        imagen_url: '',
+        imageFile: null,
+        imagePreview: '',
+        fileName: ''
       });
     }
     setIsProductModalOpen(true);
@@ -151,21 +264,38 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
 
     setIsSubmitting(true);
     try {
+      let finalImageUrl = productForm.imagen_url || '';
+
+      // Si el usuario seleccionó un archivo nuevo, subirlo al servidor primero
+      if (productForm.imageFile) {
+        finalImageUrl = await uploadImage(productForm.imageFile);
+      }
+
       const isEdit = !!editingProduct;
       const payload = {
-        ...productForm,
+        nombre: productForm.nombre.trim(),
+        descripcion: productForm.descripcion?.trim() || '',
+        precio: Number(productForm.precio),
+        precio_oferta: productForm.precio_oferta ? Number(productForm.precio_oferta) : null,
+        largo_cm: productForm.largo_cm ? Number(productForm.largo_cm) : null,
+        ancho_cm: productForm.ancho_cm ? Number(productForm.ancho_cm) : null,
+        alto_cm: productForm.alto_cm ? Number(productForm.alto_cm) : null,
+        id_categoria: productForm.id_categoria,
+        imagen_url: finalImageUrl,
+        url_imagen: finalImageUrl,
         activo: editingProduct ? editingProduct.activo : 1
       };
 
       if (isEdit) {
-        await productoService.actualizar(editingProduct.id_mueble, payload);
+        await productoService.actualizar(editingProduct.id_muebles || editingProduct.id_mueble, payload);
       } else {
         await productoService.crear(payload);
       }
 
-      showToast(isEdit ? 'Producto actualizado correctamente' : 'Producto creado exitosamente');
+      showToast(isEdit ? 'Mueble actualizado con su foto' : 'Mueble creado con su foto exitosamente');
       setIsProductModalOpen(false);
       fetchData();
+      if (isSuperAdmin) fetchHistorial();
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -181,6 +311,7 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
       setProductos((prev) =>
         prev.map((p) => (p.id_mueble === product.id_mueble ? { ...p, activo: newStatus } : p))
       );
+      if (isSuperAdmin) fetchHistorial();
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -192,13 +323,15 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
       setEditingCategory(cat);
       setCategoryForm({
         nombre: cat.nombre || '',
-        descripcion: cat.descripcion || ''
+        descripcion: cat.descripcion || '',
+        imagen_url: cat.imagen_url || ''
       });
     } else {
       setEditingCategory(null);
       setCategoryForm({
         nombre: '',
-        descripcion: ''
+        descripcion: '',
+        imagen_url: ''
       });
     }
     setIsCategoryModalOpen(true);
@@ -220,7 +353,7 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
         await categoriaService.crear(categoryForm);
       }
 
-      showToast(isEdit ? 'Categoría actualizada' : 'Categoría creada con éxito');
+      showToast(isEdit ? 'Categoría actualizada' : 'Categoría creada exitosamente');
       setIsCategoryModalOpen(false);
       fetchData();
     } catch (err) {
@@ -230,20 +363,130 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
     }
   };
 
+  // --- MANEJADORES DEL SLIDER ---
+  const handleOpenSliderModal = (banner = null) => {
+    if (banner) {
+      setEditingBanner(banner);
+      setSliderForm({
+        titulo: banner.titulo || '',
+        imagen_url: banner.imagen_url || '',
+        orden: banner.orden || 0
+      });
+    } else {
+      setEditingBanner(null);
+      setSliderForm({
+        titulo: '',
+        imagen_url: '',
+        orden: (banners.length + 1)
+      });
+    }
+    setIsSliderModalOpen(true);
+  };
+
+  const handleSaveBanner = async (e) => {
+    e.preventDefault();
+    if (!sliderForm.imagen_url.trim()) {
+      showToast('La URL de la imagen es obligatoria', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const isEdit = !!editingBanner;
+      if (isEdit) {
+        await sliderService.actualizar(editingBanner.id_banner, sliderForm);
+      } else {
+        await sliderService.crear(sliderForm);
+      }
+
+      showToast(isEdit ? 'Imagen del slider actualizada' : 'Nueva imagen agregada al slider');
+      setIsSliderModalOpen(false);
+      fetchData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleBannerStatus = async (banner) => {
+    const newStatus = banner.activo === 1 ? 0 : 1;
+    try {
+      await sliderService.cambiarEstado(banner.id_banner, newStatus);
+      showToast(newStatus === 1 ? 'Imagen visible en slider' : 'Imagen ocultada del slider');
+      setBanners((prev) =>
+        prev.map((b) => (b.id_banner === banner.id_banner ? { ...b, activo: newStatus } : b))
+      );
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  // --- MANEJADORES DE SUPERADMIN: ADMINISTRADORES ---
+  const handleOpenAdminModal = () => {
+    setAdminForm({
+      nombre: '',
+      usuario: '',
+      correo: '',
+      password: '',
+      rol: 'admin'
+    });
+    setIsAdminModalOpen(true);
+  };
+
+  const handleSaveAdmin = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await adminService.crear({
+        ...adminForm,
+        usuario: (adminForm.usuario || adminForm.correo || '').trim()
+      });
+      showToast('Nuevo administrador creado correctamente');
+      setIsAdminModalOpen(false);
+      fetchAdmins();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleAdminStatus = async (adm) => {
+    const newStatus = adm.activo === 1 ? 0 : 1;
+    try {
+      await adminService.cambiarEstado(adm.id_admin, newStatus);
+      showToast(newStatus === 1 ? 'Administrador activado' : 'Administrador desactivado');
+      setAdmins((prev) =>
+        prev.map((a) => (a.id_admin === adm.id_admin ? { ...a, activo: newStatus } : a))
+      );
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
   // --- CONFIRMAR Y EJECUTAR ELIMINACIÓN ---
   const handleExecuteDelete = async () => {
     if (!deleteConfirm) return;
     setIsSubmitting(true);
 
     try {
-      const isProduct = deleteConfirm.type === 'producto';
-      if (isProduct) {
+      if (deleteConfirm.type === 'producto') {
         await productoService.eliminar(deleteConfirm.id);
-      } else {
+        showToast('Producto eliminado');
+        if (isSuperAdmin) fetchHistorial();
+      } else if (deleteConfirm.type === 'categoria') {
         await categoriaService.eliminar(deleteConfirm.id);
+        showToast('Categoría eliminada');
+      } else if (deleteConfirm.type === 'administrador') {
+        await adminService.eliminar(deleteConfirm.id);
+        showToast('Administrador eliminado');
+        fetchAdmins();
+      } else {
+        await sliderService.eliminar(deleteConfirm.id);
+        showToast('Imagen del slider eliminada');
       }
 
-      showToast(isProduct ? 'Producto eliminado' : 'Categoría eliminada');
       setDeleteConfirm(null);
       fetchData();
     } catch (err) {
@@ -270,73 +513,243 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
         onLogout={onLogout}
       />
 
-      {/* Tarjetas KPI */}
-      <StatsCards stats={stats} />
+      {/* Estructura Principal: Barra lateral izquierda + Panel de contenido */}
+      <div className="admin-dashboard-layout">
+        {/* Barra lateral de navegación (Sidebar izquierdo) */}
+        <aside className="admin-sidebar">
+          <div className="sidebar-group">
+            <span className="sidebar-group-title">Módulos del Sistema</span>
+            <nav className="sidebar-nav">
+              <button
+                type="button"
+                className={`sidebar-nav-btn ${activeTab === 'productos' ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveTab('productos');
+                  setSearchQuery('');
+                }}
+              >
+                <div className="nav-btn-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                  </svg>
+                </div>
+                <div className="nav-btn-content">
+                  <span className="nav-btn-label">Catálogo Muebles</span>
+                  <span className="nav-btn-badge">{productos.length}</span>
+                </div>
+              </button>
 
-      {/* Selector de pestañas */}
-      <div className="admin-nav-tabs">
-        <button
-          type="button"
-          className={`tab-btn ${activeTab === 'productos' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('productos');
-            setSearchQuery('');
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="2" y="3" width="20" height="14" rx="2" />
-            <line x1="8" y1="21" x2="16" y2="21" />
-            <line x1="12" y1="17" x2="12" y2="21" />
-          </svg>
-          <span>Catálogo de Productos ({productos.length})</span>
-        </button>
+              <button
+                type="button"
+                className={`sidebar-nav-btn ${activeTab === 'categorias' ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveTab('categorias');
+                  setSearchQuery('');
+                }}
+              >
+                <div className="nav-btn-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                  </svg>
+                </div>
+                <div className="nav-btn-content">
+                  <span className="nav-btn-label">Gestión Categorías</span>
+                  <span className="nav-btn-badge">{categorias.length}</span>
+                </div>
+              </button>
 
-        <button
-          type="button"
-          className={`tab-btn ${activeTab === 'categorias' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('categorias');
-            setSearchQuery('');
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-            <line x1="7" y1="7" x2="7.01" y2="7" />
-          </svg>
-          <span>Gestión de Categorías ({categorias.length})</span>
-        </button>
+              <button
+                type="button"
+                className={`sidebar-nav-btn ${activeTab === 'slider' ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveTab('slider');
+                  setSearchQuery('');
+                }}
+              >
+                <div className="nav-btn-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                </div>
+                <div className="nav-btn-content">
+                  <span className="nav-btn-label">Imágenes Slider</span>
+                  <span className="nav-btn-badge">{banners.length}</span>
+                </div>
+              </button>
+            </nav>
+          </div>
+
+          {/* Módulos exclusivos para Superadministrador */}
+          {isSuperAdmin && (
+            <div className="sidebar-group superadmin-section">
+              <span className="sidebar-group-title super-title">
+                👑 Superadministrador
+              </span>
+              <nav className="sidebar-nav">
+                <button
+                  type="button"
+                  className={`sidebar-nav-btn super-nav-btn ${activeTab === 'historial' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('historial');
+                    setSearchQuery('');
+                    fetchHistorial();
+                  }}
+                >
+                  <div className="nav-btn-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                  </div>
+                  <div className="nav-btn-content">
+                    <span className="nav-btn-label">Historial Modificaciones</span>
+                    <span className="nav-btn-badge super">{historial.length}</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  className={`sidebar-nav-btn super-nav-btn ${activeTab === 'admins' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('admins');
+                    setSearchQuery('');
+                    fetchAdmins();
+                  }}
+                >
+                  <div className="nav-btn-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                  <div className="nav-btn-content">
+                    <span className="nav-btn-label">Administradores</span>
+                    <span className="nav-btn-badge super">{admins.length}</span>
+                  </div>
+                </button>
+              </nav>
+            </div>
+          )}
+
+          <div className="sidebar-group sidebar-quick-actions">
+            <span className="sidebar-group-title">Acciones Rápidas</span>
+            <button
+              type="button"
+              className="btn-sidebar-action"
+              onClick={() => handleOpenProductModal()}
+            >
+              + Nuevo Mueble
+            </button>
+            <button
+              type="button"
+              className="btn-sidebar-action secondary"
+              onClick={() => handleOpenCategoryModal()}
+            >
+              + Nueva Categoría
+            </button>
+            <button
+              type="button"
+              className="btn-sidebar-action secondary"
+              onClick={() => handleOpenSliderModal()}
+            >
+              + Imagen Slider
+            </button>
+
+            {isSuperAdmin && (
+              <button
+                type="button"
+                className="btn-sidebar-action super-action"
+                onClick={handleOpenAdminModal}
+              >
+                + Nuevo Administrador
+              </button>
+            )}
+          </div>
+        </aside>
+
+        {/* Contenedor derecho: Métricas y Tablas */}
+        <div className="admin-main-container">
+          {/* Tarjetas KPI */}
+          <StatsCards stats={stats} />
+
+          {/* Contenido según pestaña */}
+          <main className="admin-content-area">
+            {activeTab === 'productos' && (
+              <ProductTable
+                products={filteredProducts}
+                categories={categorias}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                categoryFilter={categoryFilter}
+                onCategoryFilterChange={setCategoryFilter}
+                loading={loading}
+                onNewProduct={() => handleOpenProductModal()}
+                onEditProduct={handleOpenProductModal}
+                onToggleStatus={handleToggleProductStatus}
+                onDeleteProduct={setDeleteConfirm}
+              />
+            )}
+
+            {activeTab === 'categorias' && (
+              <CategoryTable
+                categories={filteredCategories}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                loading={loading}
+                onNewCategory={() => handleOpenCategoryModal()}
+                onEditCategory={handleOpenCategoryModal}
+                onDeleteCategory={setDeleteConfirm}
+              />
+            )}
+
+            {activeTab === 'slider' && (
+              <SliderTable
+                banners={filteredBanners}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                loading={loading}
+                onNewBanner={() => handleOpenSliderModal()}
+                onEditBanner={handleOpenSliderModal}
+                onToggleStatus={handleToggleBannerStatus}
+                onDeleteBanner={setDeleteConfirm}
+              />
+            )}
+
+            {/* Módulos solo visibles si es superadmin */}
+            {activeTab === 'historial' && isSuperAdmin && (
+              <HistoryTable
+                history={historial}
+                loading={loading}
+                onRefresh={fetchHistorial}
+              />
+            )}
+
+            {activeTab === 'admins' && isSuperAdmin && (
+              <AdminUsersTable
+                admins={admins}
+                loading={loading}
+                currentUser={user}
+                onNewAdmin={handleOpenAdminModal}
+                onToggleStatus={handleToggleAdminStatus}
+                onDeleteAdmin={(adm) =>
+                  setDeleteConfirm({
+                    type: 'administrador',
+                    id: adm.id_admin,
+                    name: adm.nombre
+                  })
+                }
+              />
+            )}
+          </main>
+        </div>
       </div>
-
-      {/* Contenido según pestaña */}
-      <main className="admin-content-area">
-        {activeTab === 'productos' && (
-          <ProductTable
-            products={filteredProducts}
-            categories={categorias}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            categoryFilter={categoryFilter}
-            onCategoryFilterChange={setCategoryFilter}
-            loading={loading}
-            onNewProduct={() => handleOpenProductModal()}
-            onEditProduct={handleOpenProductModal}
-            onToggleStatus={handleToggleProductStatus}
-            onDeleteProduct={setDeleteConfirm}
-          />
-        )}
-
-        {activeTab === 'categorias' && (
-          <CategoryTable
-            categories={filteredCategories}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            loading={loading}
-            onNewCategory={() => handleOpenCategoryModal()}
-            onEditCategory={handleOpenCategoryModal}
-            onDeleteCategory={setDeleteConfirm}
-          />
-        )}
-      </main>
 
       {/* Modales */}
       <ProductModal
@@ -359,6 +772,27 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
         onClose={() => setIsCategoryModalOpen(false)}
         isSubmitting={isSubmitting}
       />
+
+      <SliderModal
+        isOpen={isSliderModalOpen}
+        editingBanner={editingBanner}
+        formData={sliderForm}
+        onChange={setSliderForm}
+        onSubmit={handleSaveBanner}
+        onClose={() => setIsSliderModalOpen(false)}
+        isSubmitting={isSubmitting}
+      />
+
+      {isSuperAdmin && (
+        <AdminUserModal
+          isOpen={isAdminModalOpen}
+          formData={adminForm}
+          onChange={setAdminForm}
+          onSubmit={handleSaveAdmin}
+          onClose={() => setIsAdminModalOpen(false)}
+          isSubmitting={isSubmitting}
+        />
+      )}
 
       <DeleteConfirmModal
         confirmData={deleteConfirm}

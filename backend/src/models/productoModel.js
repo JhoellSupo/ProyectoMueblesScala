@@ -1,32 +1,74 @@
 import db from '../config/db.js';
 
+// Helper para generar slug en el backend
+const generateSlug = (text = '') =>
+  (text || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 export const productoModel = {
   // Listar productos con filtros opcionales (categoría, texto, soloActivos)
   async getAll({ soloActivos, categoria, search } = {}) {
     let query = `
       SELECT 
-        m.id_mueble,
-        m.id_categoria,
-        m.id_marca,
+        m.id_muebles,
+        m.id_muebles AS id_mueble,
+        m.id_categorias,
+        m.id_categorias AS id_categoria,
+        m.id_perfil,
         m.nombre,
+        m.slug,
         m.descripcion,
         m.precio,
-        m.largo_cm,
-        m.ancho_cm,
-        m.alto_cm,
+        m.precio_oferta,
         m.activo,
+        m.destacado,
         m.fecha_creacion,
         c.nombre AS categoria,
-        ma.nombre AS marca,
+        c.slug AS categoria_slug,
+        'Scala' AS marca,
         (
           SELECT im.url_imagen 
-          FROM imagenes_mueble im 
-          WHERE im.id_mueble = m.id_mueble 
+          FROM imagenes_muebles im 
+          WHERE im.id_muebles = m.id_muebles 
+          ORDER BY im.orden ASC, im.id_imagenes ASC
           LIMIT 1
-        ) AS imagen_url
+        ) AS imagen_url,
+        (
+          SELECT im.url_imagen 
+          FROM imagenes_muebles im 
+          WHERE im.id_muebles = m.id_muebles 
+          ORDER BY im.orden ASC, im.id_imagenes ASC
+          LIMIT 1
+        ) AS url_imagen,
+        (
+          SELECT d.largo_cm 
+          FROM detalle_perfil_medidas d 
+          WHERE d.id_perfil = m.id_perfil 
+          ORDER BY d.orden ASC, d.id_detalle ASC 
+          LIMIT 1
+        ) AS largo_cm,
+        (
+          SELECT d.ancho_cm 
+          FROM detalle_perfil_medidas d 
+          WHERE d.id_perfil = m.id_perfil 
+          ORDER BY d.orden ASC, d.id_detalle ASC 
+          LIMIT 1
+        ) AS ancho_cm,
+        (
+          SELECT d.alto_cm 
+          FROM detalle_perfil_medidas d 
+          WHERE d.id_perfil = m.id_perfil 
+          ORDER BY d.orden ASC, d.id_detalle ASC 
+          LIMIT 1
+        ) AS alto_cm
       FROM muebles m
-      LEFT JOIN categorias c ON m.id_categoria = c.id_categoria
-      LEFT JOIN marcas ma ON m.id_marca = ma.id_marca
+      LEFT JOIN categorias c ON m.id_categorias = c.id_categorias
       WHERE 1=1
     `;
     const params = [];
@@ -37,11 +79,11 @@ export const productoModel = {
 
     if (categoria) {
       if (!isNaN(categoria)) {
-        query += ` AND m.id_categoria = ?`;
+        query += ` AND m.id_categorias = ?`;
         params.push(Number(categoria));
       } else {
-        query += ` AND LOWER(c.nombre) = LOWER(?)`;
-        params.push(categoria.trim());
+        query += ` AND (LOWER(c.nombre) = LOWER(?) OR c.slug = ?)`;
+        params.push(categoria.trim(), generateSlug(categoria));
       }
     }
 
@@ -51,38 +93,143 @@ export const productoModel = {
       params.push(term, term, term);
     }
 
-    query += ` ORDER BY m.id_mueble DESC`;
+    query += ` ORDER BY m.destacado DESC, m.id_muebles DESC`;
 
     const [rows] = await db.query(query, params);
     return rows;
   },
 
-  // Obtener un producto por ID con su marca, categoría e imagen
+  // Obtener un producto por ID o slug
   async getById(id) {
+    const isNum = !isNaN(id);
+    const query = `
+      SELECT 
+        m.*,
+        m.id_muebles AS id_mueble,
+        m.id_categorias AS id_categoria,
+        c.nombre AS categoria,
+        c.slug AS categoria_slug,
+        'Scala' AS marca,
+        (
+          SELECT im.url_imagen 
+          FROM imagenes_muebles im 
+          WHERE im.id_muebles = m.id_muebles 
+          ORDER BY im.orden ASC, im.id_imagenes ASC
+          LIMIT 1
+        ) AS imagen_url,
+        (
+          SELECT im.url_imagen 
+          FROM imagenes_muebles im 
+          WHERE im.id_muebles = m.id_muebles 
+          ORDER BY im.orden ASC, im.id_imagenes ASC
+          LIMIT 1
+        ) AS url_imagen,
+        (
+          SELECT d.largo_cm 
+          FROM detalle_perfil_medidas d 
+          WHERE d.id_perfil = m.id_perfil 
+          ORDER BY d.orden ASC, d.id_detalle ASC 
+          LIMIT 1
+        ) AS largo_cm,
+        (
+          SELECT d.ancho_cm 
+          FROM detalle_perfil_medidas d 
+          WHERE d.id_perfil = m.id_perfil 
+          ORDER BY d.orden ASC, d.id_detalle ASC 
+          LIMIT 1
+        ) AS ancho_cm,
+        (
+          SELECT d.alto_cm 
+          FROM detalle_perfil_medidas d 
+          WHERE d.id_perfil = m.id_perfil 
+          ORDER BY d.orden ASC, d.id_detalle ASC 
+          LIMIT 1
+        ) AS alto_cm
+      FROM muebles m
+      LEFT JOIN categorias c ON m.id_categorias = c.id_categorias
+      WHERE ${isNum ? 'm.id_muebles = ?' : 'm.slug = ?'}
+    `;
+    const [rows] = await db.query(query, [id]);
+    return rows[0] || null;
+  },
+
+  // Obtener producto por slug
+  async getBySlug(slug) {
     const [rows] = await db.query(`
       SELECT 
         m.*,
+        m.id_muebles AS id_mueble,
+        m.id_categorias AS id_categoria,
         c.nombre AS categoria,
-        ma.nombre AS marca,
+        c.slug AS categoria_slug,
+        'Scala' AS marca,
         (
           SELECT im.url_imagen 
-          FROM imagenes_mueble im 
-          WHERE im.id_mueble = m.id_mueble 
+          FROM imagenes_muebles im 
+          WHERE im.id_muebles = m.id_muebles 
+          ORDER BY im.orden ASC, im.id_imagenes ASC
           LIMIT 1
-        ) AS imagen_url
+        ) AS imagen_url,
+        (
+          SELECT im.url_imagen 
+          FROM imagenes_muebles im 
+          WHERE im.id_muebles = m.id_muebles 
+          ORDER BY im.orden ASC, im.id_imagenes ASC
+          LIMIT 1
+        ) AS url_imagen,
+        (
+          SELECT d.largo_cm 
+          FROM detalle_perfil_medidas d 
+          WHERE d.id_perfil = m.id_perfil 
+          ORDER BY d.orden ASC, d.id_detalle ASC 
+          LIMIT 1
+        ) AS largo_cm,
+        (
+          SELECT d.ancho_cm 
+          FROM detalle_perfil_medidas d 
+          WHERE d.id_perfil = m.id_perfil 
+          ORDER BY d.orden ASC, d.id_detalle ASC 
+          LIMIT 1
+        ) AS ancho_cm,
+        (
+          SELECT d.alto_cm 
+          FROM detalle_perfil_medidas d 
+          WHERE d.id_perfil = m.id_perfil 
+          ORDER BY d.orden ASC, d.id_detalle ASC 
+          LIMIT 1
+        ) AS alto_cm
       FROM muebles m
-      LEFT JOIN categorias c ON m.id_categoria = c.id_categoria
-      LEFT JOIN marcas ma ON m.id_marca = ma.id_marca
-      WHERE m.id_mueble = ?
-    `, [id]);
+      LEFT JOIN categorias c ON m.id_categorias = c.id_categorias
+      WHERE m.slug = ?
+    `, [slug]);
     return rows[0] || null;
   },
 
   // Obtener todas las imágenes de un mueble
-  async getImages(idMueble) {
+  async getImages(idMuebles) {
     const [rows] = await db.query(
-      'SELECT id_imagen, url_imagen FROM imagenes_mueble WHERE id_mueble = ?',
-      [idMueble]
+      `SELECT 
+         id_imagenes, 
+         id_imagenes AS id_imagen, 
+         url_imagen, 
+         orden 
+       FROM imagenes_muebles 
+       WHERE id_muebles = ? 
+       ORDER BY orden ASC, id_imagenes ASC`,
+      [idMuebles]
+    );
+    return rows;
+  },
+
+  // Obtener medidas del perfil si tiene
+  async getMedidas(idPerfil) {
+    if (!idPerfil) return [];
+    const [rows] = await db.query(
+      `SELECT id_detalle, nombre_pieza, cantidad, largo_cm, ancho_cm, alto_cm, orden
+       FROM detalle_perfil_medidas
+       WHERE id_perfil = ?
+       ORDER BY orden ASC, id_detalle ASC`,
+      [idPerfil]
     );
     return rows;
   },
@@ -90,133 +237,143 @@ export const productoModel = {
   // Crear mueble
   async create(datos) {
     const {
+      id_categorias,
       id_categoria,
-      id_marca,
+      id_perfil,
       nombre,
       descripcion,
       precio,
-      largo_cm,
-      ancho_cm,
-      alto_cm,
-      activo = 1
+      precio_oferta,
+      activo,
+      destacado,
+      slug
     } = datos;
 
-    const [result] = await db.query(`
-      INSERT INTO muebles (
-        id_categoria,
-        id_marca,
+    const catId = id_categorias || id_categoria;
+    let baseSlug = slug ? generateSlug(slug) : generateSlug(nombre);
+
+    // Evitar colisión de slugs
+    let finalSlug = baseSlug;
+    let count = 1;
+    while (true) {
+      const [check] = await db.query('SELECT id_muebles FROM muebles WHERE slug = ?', [finalSlug]);
+      if (check.length === 0) break;
+      finalSlug = `${baseSlug}-${count++}`;
+    }
+
+    const [result] = await db.query(
+      `INSERT INTO muebles (
+        id_categorias,
+        id_perfil,
         nombre,
         descripcion,
         precio,
-        largo_cm,
-        ancho_cm,
-        alto_cm,
-        activo
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      id_categoria,
-      id_marca,
-      nombre.trim(),
-      descripcion?.trim() || null,
-      Number(precio),
-      largo_cm ? Number(largo_cm) : null,
-      ancho_cm ? Number(ancho_cm) : null,
-      alto_cm ? Number(alto_cm) : null,
-      activo ? 1 : 0
-    ]);
+        precio_oferta,
+        activo,
+        destacado,
+        slug
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        catId,
+        id_perfil || null,
+        nombre.trim(),
+        descripcion?.trim() || null,
+        Number(precio),
+        precio_oferta ? Number(precio_oferta) : null,
+        activo !== undefined ? (activo ? 1 : 0) : 1,
+        destacado ? 1 : 0,
+        finalSlug
+      ]
+    );
 
     return result.insertId;
   },
 
-  // Añadir imagen a un mueble
-  async addImage(idMueble, urlImagen) {
-    if (!urlImagen || !urlImagen.trim()) return null;
+  // Agregar imagen al mueble
+  async addImage(idMuebles, urlImagen, orden = 1) {
     const [result] = await db.query(
-      'INSERT INTO imagenes_mueble (id_mueble, url_imagen) VALUES (?, ?)',
-      [idMueble, urlImagen.trim()]
+      'INSERT INTO imagenes_muebles (id_muebles, url_imagen, orden) VALUES (?, ?, ?)',
+      [idMuebles, urlImagen.trim(), Number(orden) || 1]
     );
     return result.insertId;
   },
 
-  // Actualizar o insertar imagen principal
-  async setMainImage(idMueble, urlImagen) {
-    const [existentes] = await db.query(
-      'SELECT id_imagen FROM imagenes_mueble WHERE id_mueble = ? LIMIT 1',
-      [idMueble]
+  // Actualizar o reemplazar la imagen principal
+  async setMainImage(idMuebles, urlImagen) {
+    if (!urlImagen || !urlImagen.trim()) return;
+
+    const [existing] = await db.query(
+      'SELECT id_imagenes FROM imagenes_muebles WHERE id_muebles = ? ORDER BY orden ASC, id_imagenes ASC LIMIT 1',
+      [idMuebles]
     );
 
-    if (existentes.length > 0) {
-      if (urlImagen && urlImagen.trim()) {
-        await db.query(
-          'UPDATE imagenes_mueble SET url_imagen = ? WHERE id_imagen = ?',
-          [urlImagen.trim(), existentes[0].id_imagen]
-        );
-      } else {
-        await db.query(
-          'DELETE FROM imagenes_mueble WHERE id_imagen = ?',
-          [existentes[0].id_imagen]
-        );
-      }
-    } else if (urlImagen && urlImagen.trim()) {
+    if (existing.length > 0) {
       await db.query(
-        'INSERT INTO imagenes_mueble (id_mueble, url_imagen) VALUES (?, ?)',
-        [idMueble, urlImagen.trim()]
+        'UPDATE imagenes_muebles SET url_imagen = ? WHERE id_imagenes = ?',
+        [urlImagen.trim(), existing[0].id_imagenes]
       );
+    } else {
+      await this.addImage(idMuebles, urlImagen.trim(), 1);
     }
   },
 
-  // Actualizar datos de mueble
+  // Actualizar mueble
   async update(id, datos) {
     const {
+      id_categorias,
       id_categoria,
-      id_marca,
+      id_perfil,
       nombre,
       descripcion,
       precio,
-      largo_cm,
-      ancho_cm,
-      alto_cm,
-      activo
+      precio_oferta,
+      activo,
+      destacado,
+      slug
     } = datos;
 
-    await db.query(`
-      UPDATE muebles SET
-        id_categoria = ?,
-        id_marca = ?,
-        nombre = ?,
-        descripcion = ?,
-        precio = ?,
-        largo_cm = ?,
-        ancho_cm = ?,
-        alto_cm = ?,
-        activo = ?
-      WHERE id_mueble = ?
-    `, [
-      id_categoria,
-      id_marca,
-      nombre.trim(),
-      descripcion?.trim() || null,
-      Number(precio),
-      largo_cm ? Number(largo_cm) : null,
-      ancho_cm ? Number(ancho_cm) : null,
-      alto_cm ? Number(alto_cm) : null,
-      activo !== undefined ? (activo ? 1 : 0) : 1,
-      id
-    ]);
+    const catId = id_categorias || id_categoria;
+    const finalSlug = slug ? generateSlug(slug) : generateSlug(nombre);
+
+    await db.query(
+      `UPDATE muebles
+       SET id_categorias = COALESCE(?, id_categorias),
+           id_perfil = COALESCE(?, id_perfil),
+           nombre = ?,
+           descripcion = ?,
+           precio = ?,
+           precio_oferta = ?,
+           activo = ?,
+           destacado = COALESCE(?, destacado),
+           slug = ?
+       WHERE id_muebles = ?`,
+      [
+        catId || null,
+        id_perfil !== undefined ? id_perfil : null,
+        nombre.trim(),
+        descripcion?.trim() || null,
+        Number(precio),
+        precio_oferta ? Number(precio_oferta) : null,
+        activo !== undefined ? (activo ? 1 : 0) : 1,
+        destacado !== undefined ? (destacado ? 1 : 0) : null,
+        finalSlug,
+        id
+      ]
+    );
 
     return this.getById(id);
   },
 
-  // Eliminar tablas dependientes antes de borrar mueble
-  async deleteDependencies(idMueble) {
-    await db.query('DELETE FROM imagenes_mueble WHERE id_mueble = ?', [idMueble]);
-    await db.query('DELETE FROM mueble_material WHERE id_mueble = ?', [idMueble]);
-    await db.query('DELETE FROM variantes_mueble WHERE id_mueble = ?', [idMueble]);
+  // Eliminar dependencias
+  async deleteDependencies(idMuebles) {
+    await db.query('DELETE FROM imagenes_muebles WHERE id_muebles = ?', [idMuebles]);
+    await db.query('DELETE FROM muebles_materiales WHERE id_muebles = ?', [idMuebles]);
+    await db.query('DELETE FROM variantes_muebles WHERE id_muebles = ?', [idMuebles]);
   },
 
   // Eliminar mueble
-  async delete(idMueble) {
-    const [result] = await db.query('DELETE FROM muebles WHERE id_mueble = ?', [idMueble]);
+  async delete(idMuebles) {
+    const [result] = await db.query('DELETE FROM muebles WHERE id_muebles = ?', [idMuebles]);
     return result.affectedRows > 0;
   }
 };

@@ -1,3 +1,5 @@
+import { formatImageUrl } from '../../services/apiClient';
+
 export default function ProductTable({
   products,
   categories,
@@ -98,9 +100,9 @@ export default function ProductTable({
                 <tr key={p.id_mueble}>
                   <td>
                     <div className="product-table-thumb">
-                      {p.imagen_url ? (
+                      {(p.imagen_url || p.url_imagen) ? (
                         <img
-                          src={p.imagen_url}
+                          src={formatImageUrl(p.imagen_url || p.url_imagen)}
                           alt={p.nombre}
                           onError={(e) => {
                             e.target.src = '/paguinalogo.jpeg';
