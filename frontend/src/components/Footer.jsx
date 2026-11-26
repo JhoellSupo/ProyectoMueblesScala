@@ -1,4 +1,5 @@
 import './Footer.css';
+import { getGeneralWhatsAppUrl } from '../utils/whatsapp';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -74,7 +75,7 @@ export default function Footer({ showMap = true }) {
               </svg>
             </a>
             <a
-              href="https://api.whatsapp.com/send/?phone=51923254150&text=Hola%2C+estoy+en+su+tienda+virtual+y+tengo+una+duda...&type=phone_number&app_absent=0"
+              href={getGeneralWhatsAppUrl()}
               className="social-btn whatsapp"
               target="_blank"
               rel="noopener noreferrer"

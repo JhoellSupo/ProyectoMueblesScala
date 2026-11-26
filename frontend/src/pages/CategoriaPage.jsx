@@ -4,6 +4,7 @@ import Footer from '../components/Footer';
 import { productoService } from '../services/productoService';
 import { categoriaService } from '../services/categoriaService';
 import { formatImageUrl } from '../services/apiClient';
+import { getProductWhatsAppUrl } from '../utils/whatsapp';
 import './CategoryPage.css';
 import './Home.css';
 
@@ -282,9 +283,7 @@ export default function CategoriaPage({ categoryIdentifier, user, onLogout, onNa
                     </div>
 
                     <a
-                      href={`https://wa.me/51952003883?text=Hola%20Muebles%20Scala,%20deseo%20consultar%20sobre%20el%20mueble:%20${encodeURIComponent(
-                        p.nombre
-                      )}`}
+                      href={getProductWhatsAppUrl(p)}
                       className="btn-whatsapp-quote"
                       target="_blank"
                       rel="noopener noreferrer"

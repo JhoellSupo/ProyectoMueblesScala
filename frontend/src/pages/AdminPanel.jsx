@@ -211,8 +211,19 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
     );
   }, [banners, searchQuery]);
 
+  const closeAllFullPageForms = () => {
+    setIsProductModalOpen(false);
+    setIsCategoryModalOpen(false);
+    setIsSliderModalOpen(false);
+  };
+
+  const isFullPageFormOpen =
+    isProductModalOpen || isCategoryModalOpen || isSliderModalOpen;
+
   // --- MANEJADORES DE PRODUCTO ---
   const handleOpenProductModal = (product = null) => {
+    closeAllFullPageForms();
+    setActiveTab('productos');
     if (product) {
       setEditingProduct(product);
       setProductForm({
@@ -247,6 +258,7 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
       });
     }
     setIsProductModalOpen(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSaveProduct = async (e) => {
@@ -321,6 +333,8 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
 
   // --- MANEJADORES DE CATEGORÍA ---
   const handleOpenCategoryModal = (cat = null) => {
+    closeAllFullPageForms();
+    setActiveTab('categorias');
     if (cat) {
       setEditingCategory(cat);
       setCategoryForm({
@@ -337,6 +351,7 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
       });
     }
     setIsCategoryModalOpen(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSaveCategory = async (e) => {
@@ -367,6 +382,8 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
 
   // --- MANEJADORES DEL SLIDER ---
   const handleOpenSliderModal = (banner = null) => {
+    closeAllFullPageForms();
+    setActiveTab('slider');
     if (banner) {
       setEditingBanner(banner);
       setSliderForm({
@@ -389,6 +406,7 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
       });
     }
     setIsSliderModalOpen(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSaveBanner = async (e) => {
@@ -541,8 +559,42 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
         onLogout={onLogout}
       />
 
-      {/* Estructura Principal: Barra lateral izquierda + Panel de contenido */}
-      <div className="admin-dashboard-layout">
+      {/* Vista principal: Formulario de página completa o Dashboard con barra lateral */}
+      {isFullPageFormOpen ? (
+        <main className="admin-fullpage-view">
+          <ProductModal
+            isOpen={isProductModalOpen}
+            editingProduct={editingProduct}
+            categories={categorias}
+            formData={productForm}
+            onChange={setProductForm}
+            onSubmit={handleSaveProduct}
+            onClose={() => setIsProductModalOpen(false)}
+            isSubmitting={isSubmitting}
+          />
+
+          <CategoryModal
+            isOpen={isCategoryModalOpen}
+            editingCategory={editingCategory}
+            formData={categoryForm}
+            onChange={setCategoryForm}
+            onSubmit={handleSaveCategory}
+            onClose={() => setIsCategoryModalOpen(false)}
+            isSubmitting={isSubmitting}
+          />
+
+          <SliderModal
+            isOpen={isSliderModalOpen}
+            editingBanner={editingBanner}
+            formData={sliderForm}
+            onChange={setSliderForm}
+            onSubmit={handleSaveBanner}
+            onClose={() => setIsSliderModalOpen(false)}
+            isSubmitting={isSubmitting}
+          />
+        </main>
+      ) : (
+        <div className="admin-dashboard-layout">
         {/* Barra lateral de navegación (Sidebar izquierdo) */}
         <aside className="admin-sidebar">
           <div className="sidebar-group">
@@ -778,39 +830,9 @@ export default function AdminPanel({ user, onLogout, onNavigate }) {
           </main>
         </div>
       </div>
+      )}
 
-      {/* Modales */}
-      <ProductModal
-        isOpen={isProductModalOpen}
-        editingProduct={editingProduct}
-        categories={categorias}
-        formData={productForm}
-        onChange={setProductForm}
-        onSubmit={handleSaveProduct}
-        onClose={() => setIsProductModalOpen(false)}
-        isSubmitting={isSubmitting}
-      />
-
-      <CategoryModal
-        isOpen={isCategoryModalOpen}
-        editingCategory={editingCategory}
-        formData={categoryForm}
-        onChange={setCategoryForm}
-        onSubmit={handleSaveCategory}
-        onClose={() => setIsCategoryModalOpen(false)}
-        isSubmitting={isSubmitting}
-      />
-
-      <SliderModal
-        isOpen={isSliderModalOpen}
-        editingBanner={editingBanner}
-        formData={sliderForm}
-        onChange={setSliderForm}
-        onSubmit={handleSaveBanner}
-        onClose={() => setIsSliderModalOpen(false)}
-        isSubmitting={isSubmitting}
-      />
-
+      {/* Modales pequeños de confirmación y usuario */}
       {isSuperAdmin && (
         <AdminUserModal
           isOpen={isAdminModalOpen}

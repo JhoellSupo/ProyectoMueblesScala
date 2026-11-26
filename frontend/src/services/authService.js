@@ -1,10 +1,11 @@
 import { request } from './apiClient';
 
 const STORAGE_KEY = 'scala_admin_user';
+const TOKEN_KEY = 'scala_admin_token';
 
 export const authService = {
   /**
-   * Autentica al usuario contra el backend
+   * Autentica al usuario contra el backend y almacena el token JWT
    */
   async login({ username, password }) {
     const res = await request('/api/usuario/login', {
@@ -17,8 +18,40 @@ export const authService = {
     });
 
     const user = res.user || { username: username.trim(), rol: 'admin' };
+    
+    // Guardar token JWT si fue provisto por el backend
+    if (res.token) {
+      this.setToken(res.token);
+    }
+    
     this.setStoredUser(user);
     return user;
+  },
+
+  /**
+   * Obtiene el token JWT actual
+   */
+  getToken() {
+    try {
+      return localStorage.getItem(TOKEN_KEY) || null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Guarda o elimina el token JWT
+   */
+  setToken(token) {
+    try {
+      if (token) {
+        localStorage.setItem(TOKEN_KEY, token);
+      } else {
+        localStorage.removeItem(TOKEN_KEY);
+      }
+    } catch (e) {
+      console.error('Error al guardar token JWT:', e);
+    }
   },
 
   /**
@@ -26,32 +59,6 @@ export const authService = {
    */
   getStoredUser() {
     try {
-      if (typeof window !== 'undefined' && window.location.search) {
-        if (window.location.search.includes('user=superadmin')) {
-          const u = {
-            id: 2,
-            nombre: 'superadmin',
-            username: 'superadmin',
-            usuario: 'superadmin',
-            rol: 'superadmin',
-            correo: 'superadmin'
-          };
-          this.setStoredUser(u);
-          return u;
-        }
-        if (window.location.search.includes('user=admin')) {
-          const u = {
-            id: 1,
-            nombre: 'admin',
-            username: 'admin',
-            usuario: 'admin',
-            rol: 'admin',
-            correo: 'admin'
-          };
-          this.setStoredUser(u);
-          return u;
-        }
-      }
       const saved = localStorage.getItem(STORAGE_KEY);
       return saved ? JSON.parse(saved) : null;
     } catch {
@@ -71,11 +78,12 @@ export const authService = {
   },
 
   /**
-   * Elimina la sesión de localStorage
+   * Elimina la sesión y el token de localStorage
    */
   logout() {
     try {
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(TOKEN_KEY);
     } catch (e) {
       console.error('Error al cerrar sesión:', e);
     }

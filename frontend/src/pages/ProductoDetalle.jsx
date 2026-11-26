@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { productoService } from '../services/productoService';
 import { formatImageUrl } from '../services/apiClient';
+import { getProductWhatsAppUrl } from '../utils/whatsapp';
 import './ProductoDetalle.css';
 import './Home.css';
 
@@ -111,11 +112,7 @@ export default function ProductoDetalle({ productIdentifier, user, onLogout, onN
     return toSlug(producto.categoria);
   };
 
-  const whatsappMessage = encodeURIComponent(
-    `Hola Muebles Scala, deseo consultar sobre el mueble: *${producto?.nombre || ''}* (Precio: S/. ${
-      producto?.precio || ''
-    }). ¿Podrían brindarme información sobre disponibilidad y tiempos de entrega?`
-  );
+  const whatsappUrl = getProductWhatsAppUrl(producto);
 
   return (
     <div className="product-detail-container">
@@ -304,7 +301,7 @@ export default function ProductoDetalle({ productIdentifier, user, onLogout, onN
                 {/* Botones de Acción */}
                 <div className="product-actions-group">
                   <a
-                    href={`https://wa.me/51952003883?text=${whatsappMessage}`}
+                    href={whatsappUrl}
                     className="btn-whatsapp-primary"
                     target="_blank"
                     rel="noopener noreferrer"

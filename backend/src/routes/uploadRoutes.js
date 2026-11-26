@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { requerirAuth } from '../middlewares/authMiddleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,9 +50,10 @@ const router = Router();
 /**
  * POST /api/upload
  * Recibe un archivo en el campo 'imagen' o 'file'
- * Retorna la URL pública generada automáticamente sin intervención manual
+ * Protegido con JWT: solo administradores autenticados pueden subir fotos
+ * Retorna la URL generada automáticamente sin intervención manual
  */
-router.post('/', (req, res, next) => {
+router.post('/', requerirAuth, (req, res, next) => {
   upload.single('imagen')(req, res, (err) => {
     if (err) {
       if (err instanceof multer.MulterError) {

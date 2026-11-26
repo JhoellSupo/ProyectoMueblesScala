@@ -1,4 +1,8 @@
 import { usuarioService } from '../services/usuarioService.js';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'muebles_scala_jwt_super_secret_key_2026_secur3!';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
 
 export const usuarioController = {
   // POST /api/usuario/login
@@ -8,9 +12,24 @@ export const usuarioController = {
       const identifier = correo || username;
       const user = await usuarioService.autenticar({ identifier, password });
 
+      // Generar token criptográfico JWT firmado
+      const token = jwt.sign(
+        {
+          id: user.id,
+          username: user.username || user.usuario,
+          usuario: user.usuario || user.username,
+          nombre: user.nombre,
+          rol: user.rol,
+          rol_db: user.rol_db
+        },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRES_IN }
+      );
+
       res.json({
         success: true,
         message: 'Acceso autorizado al Panel de Administración',
+        token,
         user
       });
     } catch (error) {
@@ -23,7 +42,8 @@ export const usuarioController = {
     try {
       res.json({
         success: true,
-        message: 'Servicio de autenticación disponible'
+        message: 'Sesión activa y válida',
+        user: req.user
       });
     } catch (error) {
       next(error);

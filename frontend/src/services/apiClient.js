@@ -1,18 +1,23 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 /**
- * Cliente HTTP base para realizar peticiones a la API
+ * Cliente HTTP base para realizar peticiones a la API con soporte JWT
  */
 export async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  const adminHeader = {};
+  const authHeaders = {};
   try {
+    const token = localStorage.getItem('scala_admin_token');
+    if (token) {
+      authHeaders['Authorization'] = `Bearer ${token}`;
+    }
+
     const saved = localStorage.getItem('scala_admin_user');
     if (saved) {
       const u = JSON.parse(saved);
       if (u?.nombre || u?.username) {
-        adminHeader['x-admin-user'] = u.nombre || u.username;
+        authHeaders['x-admin-user'] = u.nombre || u.username;
       }
     }
   } catch {
@@ -22,7 +27,7 @@ export async function request(endpoint, options = {}) {
   const config = {
     headers: {
       'Content-Type': 'application/json',
-      ...adminHeader,
+      ...authHeaders,
       ...options.headers
     },
     ...options
@@ -31,10 +36,19 @@ export async function request(endpoint, options = {}) {
   const response = await fetch(url, config);
   const data = await response.json().catch(() => null);
 
+  // Manejo de expiración de sesión
+  if (response.status === 401 && (data?.code === 'TOKEN_EXPIRED' || data?.code === 'TOKEN_INVALID')) {
+    try {
+      localStorage.removeItem('scala_admin_token');
+      localStorage.removeItem('scala_admin_user');
+    } catch {}
+  }
+
   if (!response.ok || (data && data.success === false)) {
     const errorMessage = data?.message || `Error en la petición: ${response.status} ${response.statusText}`;
     const error = new Error(errorMessage);
     error.status = response.status;
+    error.code = data?.code;
     error.data = data;
     throw error;
   }
@@ -57,14 +71,23 @@ export function formatImageUrl(url) {
 }
 
 /**
- * Sube un archivo de imagen al servidor automáticamente
+ * Sube un archivo de imagen al servidor automáticamente enviando token JWT
  */
 export async function uploadImage(file) {
   const formData = new FormData();
   formData.append('imagen', file);
 
+  const authHeaders = {};
+  try {
+    const token = localStorage.getItem('scala_admin_token');
+    if (token) {
+      authHeaders['Authorization'] = `Bearer ${token}`;
+    }
+  } catch {}
+
   const response = await fetch(`${API_BASE_URL}/api/upload`, {
     method: 'POST',
+    headers: authHeaders,
     body: formData
   });
 
